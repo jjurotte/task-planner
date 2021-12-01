@@ -1,0 +1,442 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+
+  <title>Task Planner</title>
+  <meta name="description" content="Task Planner">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+   integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+   crossorigin=""/>
+   
+   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+   integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+   crossorigin=""></script>
+ 
+   <script src="L.Control.MousePosition.js"></script>
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon"/>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+   
+
+<title>Task Planner</title>
+<style>
+    .leaflet-container .leaflet-control-mouseposition {
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 5px #bbb;
+  padding: 0 5px;
+  margin:0;
+  color: #333;
+  font: 11px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
+}
+img.huechange { 
+    filter: hue-rotate(120deg); 
+}
+
+table, th, td {
+   border: 1px solid black;
+  border-collapse: collapse;
+   text-align: center;
+}
+
+#map { width: 100%;height: 700; }
+
+.item1 { grid-area: task;
+background-color: #d7dbe0;
+
+}
+.item2 { grid-area: map; 
+cursor: -webkit-grab; cursor: grab;
+border-left: 1px solid #0000ff;
+}
+.item3 { grid-area: data; 
+background-color: #dae0d7;
+border-top: 1px solid #0000ff;
+
+
+}
+
+
+.grid-container {
+  display: grid;
+  grid-template-areas:
+    'task map map map map'
+    'task map map map map'
+    'data map map map map'
+    'data map map map map';
+  grid-template-columns: 25% 20% 20% 20% 15%; 
+  grid-template-rows: 30% 25% 25% 20%;
+ 
+}
+.grid-container > div {
+  
+  
+}
+
+</style>
+</head>
+
+<body>
+    <div class='grid-container'>
+    <div class='item1'>
+        
+        This page is working but is still <a style="color:red">open to improvement</a> Any tips or suggestions contact <a href="mailto:jjgliding@gmail.com">John</a><br><input type='button' class="mybuttons" value='Show explanation' onclick='instructions()' id='explanation'><br>
+        <div id='instructions'>
+        This page can be used to plan tasks out of Pipers.<br>
+        It will output a *.cup file containing the task which can then be loaded into your soaring computer. This file can be downloaded from here <strike>or emailed to you.</strike><br>Press the "create task" button to enable task setting mode. <br>
+        Just click on the waypoints that you want to visit, then click on Pipers waypoint to display data for that task. No need to click on Pipers to start.<br>You can also click on a blank point on the map and that point will be included as a waypoint in your task.<br>
+        
+        <br>To display info for each waypoint, hover the mouse over that point<br>
+    </div>
+        
+        <input type='button' class="mybuttons" value='Create Task' onclick='taskmode()' id='start_btn'>
+        
+        <input type='button' class="mybuttons" value='Clear and start new task' onclick='clear_start()' id='clear_start_btn'>
+    <div id='tablediv'>
+    <table id='tasktable' style='width: 100%'><tr><th style='width: 50%'>Waypoint</th><th style='width: 25%'>Bearing</th><th style='width: 25%'>Distance</th></tr></table>
+    </div>
+    <input type='button' class="mybuttons" value='Download CUP file' onclick='make_cup_file()' id='dl_cup_btn'>
+    <div>
+        <input type="text" id="email" name="email" placeholder='enter your email address here'>
+    <input type='button' class="mybuttons" value='Email cup file to address above' onclick='email()' id='email_btn'>
+    
+    </div>
+    </div>
+    <div class='item2'>
+    <div id="map"></div>
+    </div>
+    <div class='item3'>
+        <div id='info'></div>
+        <div id='infotable'>
+            <table style='width: 100%'>
+                <h3 style='width: 100%; text-align: center;'>Waypoint Info</h3>
+                <tr><td style='width: 40%'>WP Name</td><td id='wpname' style='width: 60%;font-weight: bold;'></td></tr>
+                <tr><td style='width: 40%'>Lat. Lon.</td><td id='wplatlon' style='width: 60%;font-weight: bold;'></td></tr>
+                <tr><td style='width: 40%'>Elev.</td><td id='wpelev' style='width: 60%;font-weight: bold;'></td></tr>
+                <tr><td style='width: 40%'>Dist. from Pipers</td><td id='wpdist' style='width: 60%;font-weight: bold;'></td></tr>
+                <tr><td style='width: 40%'>RW Length</td><td id='wplen' style='width: 60%;font-weight: bold;'></td></tr>
+                <tr><td style='width: 40%'>RW Direction</td><td id='wpdir' style='width: 60%;font-weight: bold;'></td></tr>
+
+            </table>
+            <div id='cursordata'></div>
+        </div>
+    </div>
+    </div>
+  <script>
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); 
+    var yyyy = today.getFullYear();
+    today = dd+'-'+mm+'-'+yyyy;
+    let showinstructions = false;
+    let jjlat = 0.0;
+    let polylines = [];
+    let cupdatfile = [];
+    let rows = 0;
+    let taskclickmode = false;
+    let lastpoint = [-33.378, 149.518];//Pipers
+    let totalkm = parseFloat(0.0);
+    document.getElementById("instructions").style.display="none";
+    document.getElementById("dl_cup_btn").style.display="none";
+    //document.getElementById("dl_dat_btn").style.display="none";
+    document.getElementById("email_btn").style.display="none";
+    document.getElementById("email").style.display="none";
+    document.getElementById("tablediv").style.display="none";
+    document.getElementById("clear_start_btn").style.display="none";
+    //document.getElementById("dl_dat_btn").disabled = true;
+    document.getElementById("email_btn").disabled = true;
+    document.getElementById("email").disabled = true;
+    var mymap = L.map('map').setView([-33.42628733388728, 148.71505397955897], 9);
+    L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: 'pk.eyJ1IjoiampnbGlkaW5nIiwiYSI6ImNrd2V6YmVsZTA5b3Iyb3F3Y2piMWRucDYifQ.63p6k3UjMpspZzfvrVl96g'
+        }).addTo(mymap);
+    L.control.mousePosition().addTo(mymap);
+    L.circle([-33.379, 149.127], {radius: 18520,        
+    color: "#e6505a",
+    opacity: 0,
+    fillColor: '#e6505a',
+    fillOpacity: 0.5
+        }).addTo(mymap);
+    L.circle([-33.411, 149.653], {radius: 18520,        
+    color: "#e6505a",
+    opacity: 0,
+    fillColor: '#e6505a',
+    fillOpacity: 0.5
+        }).addTo(mymap);
+    var latlngs = [[-33.722, 150.302],[-33.692, 150.315],[-33.413, 149.321],[-33.499, 149.264]];
+    var polygon = L.polygon(latlngs, {color: "#e6505a",
+    opacity: 0,
+    fillColor: '#e6505a',
+    fillOpacity: 0.5}).addTo(mymap);
+    var latlngs = [[-34.10476008916959, 150.04704935512723],[-34.128771390328076, 150.01788453991702],[-33.544, 149.127],[-33.499, 149.264]];
+    var polygon2 = L.polygon(latlngs, {color: "#e6505a",
+    opacity: 0,
+    fillColor: '#e6505a',
+    fillOpacity: 0.5}).addTo(mymap);
+    
+    // get waypoint data from db //////////////////////////////////////////////////
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function(){
+    if (this.readyState == 4 && this.status == 200){   
+        //console.log(this.responseText);  
+        stuff = this.responseText;        
+        mystuff = JSON.parse(stuff); 
+             
+        mystuff.forEach(myFunction);
+        
+        function myFunction(item, index) { 
+            var user = mystuff[index]; 
+            //console.log(user.name+" "+user.lat+" "+user.lon);  
+            var marker = L.marker([user.lat, user.lon]).on('click', onClick);// add marker
+            marker.title = user.name;
+            marker.lat = user.lat;
+            marker.lon = user.lon;
+            marker.elev = user.elev;
+            marker.rwdir = user.rwdir;
+            marker.rwlength = user.rwlength;
+            marker.dist = user.dist;
+            marker.on('mouseover',function() {
+                document.getElementById("wpname").innerHTML=this.title;
+                document.getElementById("wplatlon").innerHTML=this.lat+", "+this.lon;
+                document.getElementById("wpelev").innerHTML=this.elev+" ft";
+                document.getElementById("wpdist").innerHTML=this.dist+" km";
+                document.getElementById("wplen").innerHTML=this.rwlength+" m";
+                document.getElementById("wpdir").innerHTML=this.rwdir;
+              marker.openPopup();
+            });
+            function onClick(e) {
+                console.log("marker clicked-taskclickmode "+taskclickmode);
+                var popLocation= e.latlng;
+                console.log(popLocation.lat, popLocation.lng, this.title);
+                line_to(popLocation.lat, popLocation.lng, this.title);
+                if(((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3) < 10){
+                    jjlat = Math.floor(Math.abs(popLocation.lat))+'0'+((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3);
+                }else{
+                    jjlat = Math.floor(Math.abs(popLocation.lat))+''+((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3);
+                }
+                
+                let jjlon = Math.floor(Math.abs(popLocation.lng))+''+((Math.abs(popLocation.lng)-Math.floor(Math.abs(popLocation.lng)))*60).toFixed(3);
+                cupdatfile.push([jjlat, jjlon, this.title,parseInt((this.elev)/3.281)+'m',1]);
+            }    
+            marker.addTo(mymap); 
+            if(marker.title  == "Pipers"){marker._icon.classList.add("huechange");}
+                }                   
+          }
+        };   
+    xhttp.open("GET", "get_waypoints.php", false);
+    xhttp.send();
+
+
+    mymap.on('click', function(e) {  
+        var popLocation= e.latlng;
+        var popup = L.popup();   
+        line_to(popLocation.lat, popLocation.lng,(popLocation.lat).toFixed(3)+", "+(popLocation.lng).toFixed(3)); 
+        if(((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3) < 10){
+            jjlat = Math.floor(Math.abs(popLocation.lat))+'0'+((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3);
+        }else{
+            jjlat = Math.floor(Math.abs(popLocation.lat))+''+((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3);
+        }
+        jjlat = Math.floor(Math.abs(popLocation.lat))+''+((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3);
+        let jjlon = Math.floor(Math.abs(popLocation.lng))+''+((Math.abs(popLocation.lng)-Math.floor(Math.abs(popLocation.lng)))*60).toFixed(3);
+        cupdatfile.push([jjlat,jjlon,popLocation.lat.toFixed(3)+", "+popLocation.lng.toFixed(3),'305m',1]);
+        console.log("*****"+popLocation.lat, popLocation.lng,jjlat+", "+jjlon,'305m',1);
+       
+    });
+
+
+    function line_to(lat,lon,location){
+        if(taskclickmode){
+        //console.log(lat,lon, location);
+        var latlngs = [lastpoint, [lat,lon]];
+        //console.log("**calculateDistance "+lastpoint,[lat,lon], location);
+        let distance = calculateDistance(lastpoint,[lat,lon], location);
+        var polyline = L.polyline(latlngs, {color: 'blue'}).addTo(mymap);
+        polylines.push(polyline);
+        lastpoint = [lat,lon];
+        
+    }
+    else{
+        
+    }
+    }
+
+
+
+function taskmode(){
+    if(taskclickmode){
+        taskclickmode = false;
+        remove_lines();
+        clear_variables(); 
+        remove_table();
+        
+            
+        
+            } else {
+                taskclickmode = true;
+                document.getElementById("tablediv").style.display="block";
+                document.getElementById("instructions").style.display="none";
+                document.getElementById("clear_start_btn").style.display="block";
+                document.getElementById("start_btn").style.display="none";
+                document.getElementById("dl_cup_btn").style.display="none";
+                cupdatfile = [];
+                
+                
+                
+            }
+    }
+
+function calculateDistance(latA, latB, location) {
+    let latlng1 = L.latLng(latA);
+    let latlng2 = L.latLng(latB);
+    document.getElementById("cursordata").innerHTML=latlng1+"  "+latlng2;
+    console.log(latlng1);
+    console.log(L.latLng(latA));
+    let distance = (latlng1.distanceTo(latlng2) / 1000).toFixed(2);    
+    totalkm = (parseFloat(totalkm) + parseFloat(distance)).toFixed(2);
+    console.log("dist " + distance);
+    console.log("total " +totalkm);
+    console.log("bearing " +bearing(latlng1, latlng2).toFixed(0));
+    
+    var tr = document.getElementById("tasktable").insertRow(-1);
+    rows = rows + 1;
+    var tabCell = tr.insertCell(-1);
+    tabCell.innerHTML = location;
+    var tabCell = tr.insertCell(-1);
+    tabCell.innerHTML = bearing(latlng1, latlng2).toFixed(0);
+    var tabCell = tr.insertCell(-1);
+    tabCell.innerHTML = distance;
+    
+    if(location == "Pipers"){
+        taskclickmode = false;
+        var tr = document.getElementById("tasktable").insertRow(-1);
+        rows = rows + 1;
+        var tabCell = tr.insertCell(-1);
+        var tabCell = tr.insertCell(-1);
+        tabCell.innerHTML = "total km";
+        var tabCell = tr.insertCell(-1);
+        tabCell.innerHTML = totalkm;
+        document.getElementById("dl_cup_btn").style.display="block";
+        //document.getElementById("dl_dat_btn").style.display="block";
+        document.getElementById("email_btn").style.display="block";
+        document.getElementById("email").style.display="block";
+        document.getElementById("clear_start_btn").style.display="block";
+        //document.getElementById("start_btn").style.display="block";
+
+    }
+}
+   
+
+function bearing(latlng1, latlng2) {
+    var rad = Math.PI / 180,
+        lat1 = latlng1.lat * rad,
+        lat2 = latlng2.lat * rad,
+        lon1 = latlng1.lng * rad,
+        lon2 = latlng2.lng * rad,
+        y = Math.sin(lon2 - lon1) * Math.cos(lat2),
+        x = Math.cos(lat1) * Math.sin(lat2) -
+            Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+    var bearing = ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+    
+    return bearing;
+
+    }
+
+function instructions(){
+    if(showinstructions){
+        document.getElementById("instructions").style.display="none";
+        document.getElementById("explanation").value = "Show explanation";
+        showinstructions = false;
+    }else{
+        document.getElementById("instructions").style.display="block";
+        document.getElementById("explanation").value = "Hide explanation";
+        showinstructions = true;
+    }
+
+}
+
+
+function remove_lines(){
+    polylines.forEach(function (item) {
+            mymap.removeLayer(item)
+        });
+}
+
+function remove_table(){
+    for (var i = 1; i <= rows; i++) {
+        if($("#tasktable tr").length > 1){
+                document.getElementById("tasktable").deleteRow(1);
+            }
+            }   
+}
+function clear_variables(){
+    lastpoint = [-33.378, 149.518];//Pipers
+    totalkm = 0;
+    cupdatfile = [];
+}
+
+function clear_start(){
+    remove_lines();
+    clear_variables();
+    remove_table();
+    taskmode();
+    document.getElementById("email_btn").style.display="none";
+    document.getElementById("email").style.display="none";
+
+}
+
+function make_cup_file(){
+    var str_json = JSON.stringify(cupdatfile);
+    request= new XMLHttpRequest();
+    request.onreadystatechange = function(){
+    if (this.readyState == 4 && this.status == 200){ console.log(this.responseText+" -"+today);
+        location.href = "https://bathurstsoaringclub.com.au/XC/Pipers_task_"+today+".cup";
+        }
+    };
+    request.open("POST", "get_cup_data.php", true);
+    request.setRequestHeader("Content-type", "application/json");
+    request.send(str_json);   
+     
+}
+
+function show_distance(a,b){
+    let latlng2 = L.latLng(a,b);
+    let latlng1 = L.latLng(-33.378,149.518);
+    let distance = (latlng2.distanceTo(latlng1) / 1000).toFixed(2);  
+    document.getElementById("cursordata").innerHTML="Cursor distance to Pipers "+distance;
+}
+
+function email(){
+    var str_json = JSON.stringify(cupdatfile);
+    request= new XMLHttpRequest();
+    request.onreadystatechange = function(){
+    if (this.readyState == 4 && this.status == 200){ 
+        var xhttp = new XMLHttpRequest();   
+        xhttp.onreadystatechange = function(){            
+            if (this.readyState == 4 && this.status == 200){  
+                console.log(this.responseText);                                                        
+        }
+        };   
+        xhttp.open("GET", "email_cup_file.php?mydate="+today+"&email="+email, false);
+        xhttp.send();
+        
+        }
+    };
+    request.open("POST", "get_cup_data.php", true);
+    request.setRequestHeader("Content-type", "application/json");
+    request.send(str_json);
+     
+
+}
+
+
+</script>
+</body>
+
+</html>
