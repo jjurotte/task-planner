@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
    crossorigin=""/>
-   
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
    crossorigin=""></script>
@@ -90,7 +90,7 @@ border-top: 1px solid #0000ff;
         
         <br>To display info for each waypoint, hover the mouse over that point<br>
     </div>
-        
+    <br>
         <input type='button' class="mybuttons" value='Create Task' onclick='taskmode()' id='start_btn'>
         
         <input type='button' class="mybuttons" value='Clear and start new task' onclick='clear_start()' id='clear_start_btn'>
@@ -106,6 +106,7 @@ border-top: 1px solid #0000ff;
     </div>
     <div class='item2'>
     <div id="map"></div>
+    
     </div>
     <div class='item3'>
         <div id='info'></div>
@@ -125,6 +126,7 @@ border-top: 1px solid #0000ff;
     </div>
     </div>
   <script>
+
     var today = new Date();
     var dd = String(today.getDate()).padStart(2, '0');
     var mm = String(today.getMonth() + 1).padStart(2, '0'); 
@@ -212,9 +214,9 @@ border-top: 1px solid #0000ff;
               marker.openPopup();
             });
             function onClick(e) {
-                console.log("marker clicked-taskclickmode "+taskclickmode);
+                //console.log("marker clicked-taskclickmode "+taskclickmode);
                 var popLocation= e.latlng;
-                console.log(popLocation.lat, popLocation.lng, this.title);
+                //console.log(popLocation.lat, popLocation.lng, this.title);
                 line_to(popLocation.lat, popLocation.lng, this.title);
                 if(((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3) < 10){
                     jjlat = Math.floor(Math.abs(popLocation.lat))+'0'+((Math.abs(popLocation.lat)-Math.floor(Math.abs(popLocation.lat)))*60).toFixed(3);

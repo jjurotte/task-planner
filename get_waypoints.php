@@ -1,10 +1,7 @@
 <?php
 
 date_default_timezone_set('Australia/Sydney');
-$host="localhost";
-$username="bathurst_admin";
-$password="PiperSw1";
-$dbname="bathurst_bsc";
+include 'db-config.php';
 
 // $items = array();
 // $group = array();

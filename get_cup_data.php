@@ -4,7 +4,6 @@
 
 ini_set('display_errors',1);
 error_reporting(E_ALL);
-echo"in get_cup_data.php";
 
 $str_json = file_get_contents('php://input');
 //echo $str_json;
